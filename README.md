@@ -15,5 +15,3 @@ python app.py
 
 
 install node js into your system
-=======
->>>>>>> 70f7a5fa9acfb299371b412201b4cc38349dd600
