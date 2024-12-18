@@ -11,7 +11,7 @@ To Run :
 4.open another terminal
 5.cd backend
 python app.py
-<<<<<<< HEAD
+
 
 
 install node js into your system
