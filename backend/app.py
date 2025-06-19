@@ -12,8 +12,9 @@ CORS(app)  # Enable CORS for cross-origin requests
 
 # Load training dataset
 try:
-    training = pd.read_csv(r'C:\Users\BHAVESH K\OneDrive\Desktop\csp\backend\datasets\hc training dataset (1).csv')
+    training = pd.read_csv('datasets/hc training dataset (1).csv')
     symptoms = training.columns[:-1]  # All columns except the last one
+    print("Available symptoms:", list(symptoms))
 except Exception as e:
     print("Error loading training dataset:", e)
     symptoms = []
@@ -39,24 +40,37 @@ precaution_dict = {}
 
 try:
     # Load severity data
-    with open(r'C:\Users\BHAVESH K\OneDrive\Desktop\csp\backend\datasets\healthcare severity dataset (1).csv') as file:
+    with open('datasets/healthcare severity dataset (1).csv') as file:
         csv_reader = csv.reader(file)
         for row in csv_reader:
             severity_dict[row[0]] = int(row[1])
 
     # Load descriptions
-    with open(r'C:\Users\BHAVESH K\OneDrive\Desktop\csp\backend\datasets\healthcare description dataset (1).csv') as file:
+    with open('datasets/healthcare description dataset (1).csv') as file:
         csv_reader = csv.reader(file)
         for row in csv_reader:
             description_dict[row[0]] = row[1]
 
     # Load precautions
-    with open(r'C:\Users\BHAVESH K\OneDrive\Desktop\csp\backend\datasets\healthcare precautions_1 (1).csv') as file:
+    with open('datasets/healthcare precautions_1 (1).csv') as file:
         csv_reader = csv.reader(file)
         for row in csv_reader:
             precaution_dict[row[0]] = row[1:]
 except Exception as e:
     print("Error loading supplementary datasets:", e)
+
+def validate_symptoms(input_symptoms):
+    """Validate input symptoms and return invalid ones."""
+    invalid_symptoms = []
+    valid_symptoms = []
+    
+    for symptom in input_symptoms:
+        if symptom not in symptoms:
+            invalid_symptoms.append(symptom)
+        else:
+            valid_symptoms.append(symptom)
+    
+    return valid_symptoms, invalid_symptoms
 
 # API to predict disease
 @app.route('/predict', methods=['POST'])
@@ -67,35 +81,55 @@ def predict_disease():
         symptoms_present = data.get('symptoms', [])
         days = data.get('days', 1)
 
+        if not symptoms_present:
+            return jsonify({
+                'error': "Please enter at least one symptom."
+            }), 400
+
         # Validate symptoms
-        symptoms_input = [symptom for symptom in symptoms_present if symptom in symptoms]
-        if not symptoms_input:
-            return jsonify({'error': "Invalid symptoms entered. Please enter known symptoms."}), 400
+        valid_symptoms, invalid_symptoms = validate_symptoms(symptoms_present)
+        
+        if not valid_symptoms:
+            error_msg = "Invalid symptoms entered: " + ", ".join(invalid_symptoms)
+            if len(symptoms) > 0:
+                error_msg += "\nExample valid symptoms: " + ", ".join(list(symptoms)[:5])
+            return jsonify({'error': error_msg}), 400
+
+        if invalid_symptoms:
+            print(f"Warning: Ignoring invalid symptoms: {invalid_symptoms}")
 
         # Create input vector for the model
-        x_input = [1 if symptom in symptoms_input else 0 for symptom in symptoms]
+        x_input = [1 if symptom in valid_symptoms else 0 for symptom in symptoms]
         prediction = model.predict([x_input])
 
         # Decode prediction
         disease = le.inverse_transform(prediction)[0]
         description = description_dict.get(disease, "No description available")
         precautions = precaution_dict.get(disease, ["No precautions available"])
-        severity = severity_dict.get(disease, "No severity info")
+        severity = "High" if severity_dict.get(disease, 0) > 7 else "Medium" if severity_dict.get(disease, 0) > 4 else "Low"
 
         # Respond with prediction details
         return jsonify({
             'disease': disease,
             'description': description,
             'precautions': precautions,
-            'severity': severity
-            
+            'severity': severity,
+            'ignored_symptoms': invalid_symptoms if invalid_symptoms else None
         })
     
     except Exception as e:
         print("Error during prediction:", e)
         print(traceback.format_exc())
-        return jsonify({'error': "An error occurred during prediction. Please try again."}), 500
+        return jsonify({
+            'error': "An error occurred during prediction. Please try again."
+        }), 500
 
+# API to get available symptoms
+@app.route('/symptoms', methods=['GET'])
+def get_symptoms():
+    return jsonify({
+        'symptoms': list(symptoms)
+    })
 
 # Run Flask app
 if __name__ == '__main__':
