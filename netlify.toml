@@ -1,0 +1,13 @@
+[build]
+  base = "disease_prediction_system/"
+  command = "pip install -r requirements.txt && cd frontend/disease-prediction-chatbot && npm install && npm run build"
+  publish = "frontend/disease-prediction-chatbot/dist"
+
+[build.environment]
+  NODE_VERSION = "18"
+  PYTHON_VERSION = "3.9.7"
+
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200 
