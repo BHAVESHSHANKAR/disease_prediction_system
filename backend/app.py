@@ -6,13 +6,17 @@ from sklearn.svm import SVC
 from sklearn.tree import DecisionTreeClassifier
 import csv
 import traceback
+import os
 
 app = Flask(__name__)
 CORS(app)  # Enable CORS for cross-origin requests
 
+# Get the absolute path to the datasets directory
+DATASET_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'datasets')
+
 # Load training dataset
 try:
-    training = pd.read_csv('datasets/hc training dataset (1).csv')
+    training = pd.read_csv(os.path.join(DATASET_DIR, 'hc training dataset (1).csv'))
     symptoms = training.columns[:-1]  # All columns except the last one
     print("Available symptoms:", list(symptoms))
 except Exception as e:
@@ -40,19 +44,19 @@ precaution_dict = {}
 
 try:
     # Load severity data
-    with open('datasets/healthcare severity dataset (1).csv') as file:
+    with open(os.path.join(DATASET_DIR, 'healthcare severity dataset (1).csv')) as file:
         csv_reader = csv.reader(file)
         for row in csv_reader:
             severity_dict[row[0]] = int(row[1])
 
     # Load descriptions
-    with open('datasets/healthcare description dataset (1).csv') as file:
+    with open(os.path.join(DATASET_DIR, 'healthcare description dataset (1).csv')) as file:
         csv_reader = csv.reader(file)
         for row in csv_reader:
             description_dict[row[0]] = row[1]
 
     # Load precautions
-    with open('datasets/healthcare precautions_1 (1).csv') as file:
+    with open(os.path.join(DATASET_DIR, 'healthcare precautions_1 (1).csv')) as file:
         csv_reader = csv.reader(file)
         for row in csv_reader:
             precaution_dict[row[0]] = row[1:]
@@ -131,7 +135,18 @@ def get_symptoms():
         'symptoms': list(symptoms)
     })
 
-# Run Flask app
+# Health check endpoint
+@app.route('/health', methods=['GET'])
+def health_check():
+    return jsonify({
+        'status': 'healthy',
+        'message': 'Service is running'
+    })
+
 if __name__ == '__main__':
-    app.run(debug=True)
+    # Get port from environment variable or default to 5000
+    port = int(os.environ.get('PORT', 5000))
+    # In production, host should be '0.0.0.0' to accept connections from any IP
+    host = '0.0.0.0' if os.environ.get('PRODUCTION') else '127.0.0.1'
+    app.run(host=host, port=port, debug=False)
     
