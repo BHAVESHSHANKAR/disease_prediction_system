@@ -1,13 +1,16 @@
 [build]
-  base = "disease_prediction_system/"
-  command = "pip install -r requirements.txt && cd frontend/disease-prediction-chatbot && npm install && npm run build"
-  publish = "frontend/disease-prediction-chatbot/dist"
+  command = "pip install -r requirements.txt"
+  functions = "backend"
 
 [build.environment]
   NODE_VERSION = "18"
   PYTHON_VERSION = "3.9.7"
 
+[functions]
+  directory = "backend"
+  node_bundler = "esbuild"
+
 [[redirects]]
-  from = "/*"
-  to = "/index.html"
+  from = "/api/*"
+  to = "/.netlify/functions/:splat"
   status = 200 
