@@ -147,6 +147,6 @@ if __name__ == '__main__':
     # Get port from environment variable or default to 5000
     port = int(os.environ.get('PORT', 5000))
     # In production, host should be '0.0.0.0' to accept connections from any IP
-    host = '0.0.0.0' if os.environ.get('PRODUCTION') else '127.0.0.1'
+    host = '0.0.0.0'
     app.run(host=host, port=port, debug=False)
     
